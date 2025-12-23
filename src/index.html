@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>To-Do Capacitor</title>
+
+    <!-- Ionic Core (Web Components) -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
+
+    <!-- Ionicons -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@7.2.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/ionicons@7.2.2/dist/ionicons/ionicons.js"></script>
+
+    <!-- Ionic CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="/style.css" />
+</head>
+
+<body>
+    <ion-app>
+        <ion-header>
+            <ion-toolbar>
+                <ion-title>To-Do List</ion-title>
+            </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="ion-padding">
+            <!-- Filter -->
+            <ion-segment id="filterSegment" value="all">
+                <ion-segment-button value="all">
+                    <ion-label>Всі</ion-label>
+                </ion-segment-button>
+                <ion-segment-button value="active">
+                    <ion-label>Активні</ion-label>
+                </ion-segment-button>
+                <ion-segment-button value="done">
+                    <ion-label>Виконані</ion-label>
+                </ion-segment-button>
+            </ion-segment>
+
+            <!-- Counter -->
+            <div class="counter">
+                <ion-text id="counter">Всього: 0, активні: 0</ion-text>
+            </div>
+
+            <!-- List -->
+            <ion-list id="tasksList"></ion-list>
+
+            <!-- Empty state -->
+            <div id="emptyState" class="empty">
+                <ion-icon name="checkbox-outline"></ion-icon>
+                <p>Поки що немає завдань. Натисни “+”, щоб додати перше.</p>
+            </div>
+
+            <!-- Floating Add Button -->
+            <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+                <ion-fab-button id="open-task-modal">
+                    <ion-icon name="add"></ion-icon>
+                </ion-fab-button>
+            </ion-fab>
+
+            <!-- Modal: Create / Edit -->
+            <ion-modal trigger="open-task-modal">
+                <ion-header>
+                    <ion-toolbar>
+                        <ion-buttons slot="start">
+                            <ion-button id="close-task-modal">Закрити</ion-button>
+                        </ion-buttons>
+                        <ion-title id="task-modal-title">Нове завдання</ion-title>
+                        <ion-buttons slot="end">
+                            <ion-button id="save-task">Зберегти</ion-button>
+                        </ion-buttons>
+                    </ion-toolbar>
+                </ion-header>
+
+                <ion-content class="ion-padding">
+                    <ion-list>
+                        <ion-item>
+                            <ion-label position="stacked">Назва *</ion-label>
+                            <ion-input id="taskTitle" placeholder="Напр.: Купити молоко" required></ion-input>
+                        </ion-item>
+
+                        <ion-item>
+                            <ion-label position="stacked">Опис</ion-label>
+                            <ion-textarea id="taskDescription" placeholder="Деталі (необов'язково)"
+                                auto-grow="true"></ion-textarea>
+                        </ion-item>
+
+                        <ion-item>
+                            <ion-label position="stacked">Дедлайн</ion-label>
+                            <ion-datetime id="taskDueAt" presentation="date-time"></ion-datetime>
+                        </ion-item>
+
+                        <ion-item lines="none">
+                            <ion-note>
+                                Порада: якщо дедлайн не потрібен — просто залиш поле пустим.
+                            </ion-note>
+                        </ion-item>
+                    </ion-list>
+                </ion-content>
+            </ion-modal>
+        </ion-content>
+    </ion-app>
+
+    <script type="module" src="/app.js"></script>
+</body>
+
+</html>
