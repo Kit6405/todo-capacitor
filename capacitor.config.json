@@ -1,0 +1,5 @@
+{
+  "appId": "com.kit.todo",
+  "appName": "ToDo Capacitor",
+  "webDir": "dist"
+}

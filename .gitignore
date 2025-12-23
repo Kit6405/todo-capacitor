@@ -1,0 +1,31 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Vite
+dist/
+.vite/
+
+# Capacitor
+capacitor.config.ts
+
+# iOS
+ios/App/App.xcworkspace
+ios/App/Pods/
+ios/App/Podfile.lock
+ios/App/DerivedData/
+ios/App/build/
+ios/.DS_Store
+
+# macOS
+.DS_Store
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
