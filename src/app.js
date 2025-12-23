@@ -1,21 +1,45 @@
+alert('APP.JS LOADED on iOS ✅');
+
 import { loadTasks, saveTasks } from './storage.js';
 
 let tasks = [];
-let filter = 'all'; // all | active | done
+let filter = 'all';
 let editingId = null;
 
 const $ = (sel) => document.querySelector(sel);
 
-function uid() {
-  if (crypto?.randomUUID) return crypto.randomUUID();
-  return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+/* =========================
+   iOS / Web SAFE TAP
+========================= */
+function onTap(el, handler) {
+  if (!el) return;
+
+  let locked = false;
+
+  const run = async (e) => {
+    if (locked) return;
+    locked = true;
+
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+
+    try {
+      await handler(e);
+    } finally {
+      setTimeout(() => (locked = false), 250);
+    }
+  };
+
+  el.addEventListener('touchend', run, { passive: false });
+  el.addEventListener('click', run);
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (m) => {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-    return map[m];
-  });
+/* ========================= */
+
+function uid() {
+  return crypto?.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
 function applyFilter(items) {
@@ -25,74 +49,43 @@ function applyFilter(items) {
 }
 
 function updateCounter() {
-  const total = tasks.length;
-  const active = tasks.filter((t) => !t.done).length;
-  $('#counter').textContent = `Всього: ${total}, активні: ${active}`;
+  $('#counter').textContent = `Всього: ${tasks.length}, активні: ${
+    tasks.filter((t) => !t.done).length
+  }`;
 }
 
 function updateEmptyState() {
-  const visibleCount = applyFilter(tasks).length;
-  $('#emptyState').style.display = visibleCount === 0 ? 'block' : 'none';
-}
-
-function formatDue(dueAt) {
-  if (!dueAt) return '';
-  try {
-    return new Date(dueAt).toLocaleString();
-  } catch {
-    return '';
-  }
+  $('#emptyState').style.display = applyFilter(tasks).length ? 'none' : 'block';
 }
 
 function render() {
-  const list = $('#tasksList');
-  const items = applyFilter(tasks);
-
-  list.innerHTML = items
-    .map((t) => {
-      const titleClass = t.done ? 'done' : '';
-      const due = t.dueAt ? `<p class="muted">Дедлайн: ${escapeHtml(formatDue(t.dueAt))}</p>` : '';
-      const desc = t.description ? `<p class="muted">${escapeHtml(t.description)}</p>` : '';
-
-      return `
-        <ion-item>
-          <ion-checkbox
-            slot="start"
-            ${t.done ? 'checked' : ''}
-            data-action="toggle"
-            data-id="${t.id}"
-          ></ion-checkbox>
-
-          <ion-label>
-            <h2 class="${titleClass}">${escapeHtml(t.title)}</h2>
-            ${desc}
-            ${due}
-          </ion-label>
-
-          <ion-buttons slot="end">
-            <ion-button fill="clear" data-action="edit" data-id="${t.id}" aria-label="edit">
-              <ion-icon name="create-outline"></ion-icon>
-            </ion-button>
-            <ion-button
-              fill="clear"
-              color="danger"
-              data-action="delete"
-              data-id="${t.id}"
-              aria-label="delete"
-            >
-              <ion-icon name="trash-outline"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-item>
-      `;
-    })
+  $('#tasksList').innerHTML = applyFilter(tasks)
+    .map(
+      (t) => `
+      <ion-item>
+        <ion-checkbox slot="start" ${t.done ? 'checked' : ''} data-id="${t.id}"></ion-checkbox>
+        <ion-label>
+          <h2 class="${t.done ? 'done' : ''}">${t.title}</h2>
+          ${t.description ? `<p>${t.description}</p>` : ''}
+        </ion-label>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" data-edit="${t.id}">
+            <ion-icon name="create-outline"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" color="danger" data-delete="${t.id}">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-item>
+    `
+    )
     .join('');
 
   updateCounter();
   updateEmptyState();
 }
 
-function resetModalToCreate() {
+function resetModal() {
   editingId = null;
   $('#task-modal-title').textContent = 'Нове завдання';
   $('#taskTitle').value = '';
@@ -100,133 +93,83 @@ function resetModalToCreate() {
   $('#taskDueAt').value = '';
 }
 
-function fillModalForEdit(task) {
-  editingId = task.id;
-  $('#task-modal-title').textContent = 'Редагувати завдання';
-  $('#taskTitle').value = task.title ?? '';
-  $('#taskDescription').value = task.description ?? '';
-  $('#taskDueAt').value = task.dueAt ? new Date(task.dueAt).toISOString() : '';
-}
-
-async function persist() {
-  await saveTasks(tasks);
-}
-
 async function init() {
+  const modal = $('#taskModal');
+
   tasks = await loadTasks();
   render();
 
-  // FILTER: ionChange on segment
   $('#filterSegment').addEventListener('ionChange', (e) => {
     filter = e.detail.value;
     render();
   });
 
-  // OPEN MODAL: prepare for create
-  $('#open-task-modal').addEventListener('click', () => {
-    resetModalToCreate();
+  /* + button */
+  onTap($('#open-task-modal'), async () => {
+    resetModal();
+    setTimeout(() => modal.present(), 0);
   });
 
-  // CLOSE MODAL
-  $('#close-task-modal').addEventListener('click', async () => {
-    const modal = $('ion-modal');
+  /* Close */
+  onTap($('#close-task-modal'), async () => {
+    document.activeElement?.blur?.();
     await modal.dismiss();
   });
 
-  // SAVE TASK (create/edit)
-  $('#save-task').addEventListener('click', async () => {
-    const title = ($('#taskTitle').value ?? '').trim();
-    const description = ($('#taskDescription').value ?? '').trim();
-    const dueIso = $('#taskDueAt').value || null;
-    const dueAt = dueIso ? new Date(dueIso).getTime() : null;
+  /* Save */
+  onTap($('#save-task'), async () => {
+    const title = $('#taskTitle').value.trim();
+    if (!title) return;
 
-    if (!title) {
-      const toast = document.createElement('ion-toast');
-      toast.message = 'Назва завдання не може бути пустою';
-      toast.duration = 1600;
-      toast.position = 'top';
-      document.body.appendChild(toast);
-      await toast.present();
-      return;
-    }
+    const task = {
+      id: editingId || uid(),
+      title,
+      description: $('#taskDescription').value.trim(),
+      dueAt: $('#taskDueAt').value || null,
+      done: false,
+    };
 
-    if (editingId) {
-      const t = tasks.find((x) => x.id === editingId);
-      if (t) {
-        t.title = title;
-        t.description = description;
-        t.dueAt = dueAt;
-        t.updatedAt = Date.now();
-      }
-    } else {
-      tasks.unshift({
-        id: uid(),
-        title,
-        description,
-        dueAt,
-        done: false,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-    }
+    tasks = editingId
+      ? tasks.map((t) => (t.id === editingId ? task : t))
+      : [task, ...tasks];
 
-    await persist();
-
-    const modal = $('ion-modal');
+    await saveTasks(tasks);
     await modal.dismiss();
-
     render();
   });
 
-  // LIST ACTIONS: edit/delete (click)
+  /* List actions */
   $('#tasksList').addEventListener('click', async (e) => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
+    const del = e.target.closest('[data-delete]');
+    const edit = e.target.closest('[data-edit]');
 
-    const action = btn.dataset.action;
-    const id = btn.dataset.id;
-    const task = tasks.find((t) => t.id === id);
-
-    if (action === 'delete') {
-      const alert = document.createElement('ion-alert');
-      alert.header = 'Видалити завдання?';
-      alert.message = 'Цю дію неможливо скасувати.';
-      alert.buttons = [
-        { text: 'Скасувати', role: 'cancel' },
-        {
-          text: 'Видалити',
-          role: 'destructive',
-          handler: async () => {
-            tasks = tasks.filter((t) => t.id !== id);
-            await persist();
-            render();
-          },
-        },
-      ];
-      document.body.appendChild(alert);
-      await alert.present();
+    if (del) {
+      tasks = tasks.filter((t) => t.id !== del.dataset.delete);
+      await saveTasks(tasks);
+      render();
     }
 
-    if (action === 'edit' && task) {
-      fillModalForEdit(task);
-      const modal = $('ion-modal');
-      await modal.present();
+    if (edit) {
+      const t = tasks.find((x) => x.id === edit.dataset.edit);
+      editingId = t.id;
+      $('#task-modal-title').textContent = 'Редагувати завдання';
+      $('#taskTitle').value = t.title;
+      $('#taskDescription').value = t.description || '';
+      $('#taskDueAt').value = t.dueAt || '';
+      setTimeout(() => modal.present(), 0);
     }
   });
 
-  // TOGGLE DONE: ionChange on checkbox
   $('#tasksList').addEventListener('ionChange', async (e) => {
-    const cb = e.target.closest('[data-action="toggle"]');
+    const cb = e.target.closest('ion-checkbox');
     if (!cb) return;
 
-    const id = cb.dataset.id;
+    const id = cb.closest('ion-item').querySelector('[data-edit]')?.dataset.edit;
     const t = tasks.find((x) => x.id === id);
     if (!t) return;
 
-    t.done = !!e.detail.checked;
-    t.updatedAt = Date.now();
-
-    await persist();
+    t.done = cb.checked;
+    await saveTasks(tasks);
     render();
   });
 }

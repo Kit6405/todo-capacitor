@@ -58,22 +58,25 @@
             </div>
 
             <!-- Floating Add Button -->
-            <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-                <ion-fab-button id="open-task-modal">
-                    <ion-icon name="add"></ion-icon>
-                </ion-fab-button>
-            </ion-fab>
+            <button id="open-task-modal" class="fab-btn" type="button">
+                <ion-icon name="add"></ion-icon>
+            </button>
+
+     
 
             <!-- Modal: Create / Edit -->
-            <ion-modal trigger="open-task-modal">
+            <ion-modal id="taskModal" backdrop-dismiss="false">
                 <ion-header>
                     <ion-toolbar>
                         <ion-buttons slot="start">
-                            <ion-button id="close-task-modal">Закрити</ion-button>
+                            <button id="close-task-modal" class="toolbar-btn" type="button">Закрити</button>
                         </ion-buttons>
+
+                        <!-- ВАЖЛИВО: це треба для app.js -->
                         <ion-title id="task-modal-title">Нове завдання</ion-title>
+
                         <ion-buttons slot="end">
-                            <ion-button id="save-task">Зберегти</ion-button>
+                            <button id="save-task" class="toolbar-btn primary" type="button">Зберегти</button>
                         </ion-buttons>
                     </ion-toolbar>
                 </ion-header>
@@ -97,9 +100,7 @@
                         </ion-item>
 
                         <ion-item lines="none">
-                            <ion-note>
-                                Порада: якщо дедлайн не потрібен — просто залиш поле пустим.
-                            </ion-note>
+                            <ion-note> Порада: якщо дедлайн не потрібен — просто залиш поле пустим. </ion-note>
                         </ion-item>
                     </ion-list>
                 </ion-content>
